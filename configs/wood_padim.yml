@@ -1,0 +1,28 @@
+# common arguments
+device: cuda:1
+seed: 3
+model: &model padim
+backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
+pretrained_model_path: checkpoints/resnet18.pth
+
+# dataset arguments
+batch_size: 1
+num_workers: 0
+category: &category wood
+resize: [256, 256]
+crop_size: [256, 256]
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
+save_path: [output/, *model, _, *backbone, _, *category]
+save_name: &save_name wood.pth
+
+# train arguments
+do_eval: True  # After training, whether to eval model;
+
+# val and predict arguments
+test_path: /data/data_wbw/data/mvtec_anomaly_detection/
+save_pic: True # Whether to save one output example picture in val and predict;
+model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
+
+# predict arguments
+img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/color/000.png 
+threshold: 0.5

@@ -1,0 +1,34 @@
+# common arguments
+device: cuda:1
+seed: 3
+model: &model stfpm
+backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
+
+# dataset arguments
+batch_size: 1
+num_workers: 0
+category: &category wood  # Category name for MvTec AD dataset, also support one of [textures, objects, all]
+resize: [256, 256]
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
+save_path: [output/, *model, _, *backbone, _, *category]
+save_name: &save_name tyre.pth
+
+# train arguments
+epochs: 50
+do_eval: True  # After training, whether to eval model;
+
+lr: 0.4
+momentum: 0.9
+weight_decay: 1.0e-4
+
+# val and predict arguments
+test_path: /data/data_wbw/data/mvtec_anomaly_detection/
+model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
+
+# val arguments
+compute_pro: False
+
+# predict arguments
+save_pic: True
+img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/color/000.png
+threshold: 0.01
