@@ -18,6 +18,7 @@ import torch
 from torch import Tensor
 
 from .random_projection_torch import SparseRandomProjection
+from tqdm import tqdm
 
 pairwise_distance = torch.nn.PairwiseDistance(p=2)
 
@@ -97,7 +98,7 @@ class KCenterGreedy:
 
         selected_coreset_idxs = []
         idx = torch.randint(high=self.n_observations, size=(1, ))  #.item()
-        for _ in (range(self.coreset_size)):
+        for _ in tqdm(range(self.coreset_size)):
             self.update_distances(cluster_centers=[idx])
             idx = torch.argmax(self.min_distances)
             #if idx in selected_idxs:
