@@ -256,3 +256,113 @@ class SemiOrthoProjection(BaseRandomProjection):
         components = torch.Tensor(n_components, n_features)
         torch.nn.init.orthogonal_(components)
         return components
+
+class my_SparseRandomProjection(BaseRandomProjection):
+    """Sparse Random Projection using Paddle operations.
+
+    Args:
+        eps (float, optional): Minimum distortion rate parameter for calculating
+            Johnson-Lindenstrauss minimum dimensions. Defaults to 0.1.
+        random_state (Optional[int], optional): Uses the seed to set the random
+            state for sample_without_replacement function. Defaults to None.
+    """
+
+    def _make_random_matrix(self, n_components: int, n_features: int):
+        """Random sparse matrix. Based on https://web.stanford.edu/~hastie/Papers/Ping/KDD06_rp.pdf.
+
+        # paddle can't multiply directly on sparse matrix and moving sparse matrix to cuda throws error
+        # (Could not run 'aten::empty_strided' with arguments from the 'SparseCsrCUDA' backend)
+        # hence sparse matrix is stored as a dense matrix
+
+        Args:
+            n_components (int): Dimensionality of the target projection space.
+            n_features (int): Dimentionality of the original source space.
+
+        Returns:
+            Tensor: Sparse matrix of shape (n_components, n_features).
+                The generated Gaussian random matrix is in CSR (compressed sparse row)
+                format.
+        """
+
+        # Density 'auto'. Factorize density
+        density = 1 / np.sqrt(n_features)
+
+        if density == 1:
+            # skip index generation if totally dense
+            binomial = torch.distributions.Binomial(total_count=1, probs=0.5)
+            components = binomial.sample((n_components, n_features)) * 2 - 1
+            components = 1 / np.sqrt(n_components) * components
+
+        else:
+            # Sparse matrix is not being generated here as it is stored as dense anyways
+            components = torch.zeros(
+                (n_components, n_features), dtype=torch.int64)
+            for i in range(n_components):
+                # find the indices of the non-zero components for row i
+                nnz_idx = np.random.binomial(n_features, density)
+                # get nnz_idx column indices
+                # pylint: disable=not-callable
+                c_idx = torch.tensor(
+                    sample_without_replacement(
+                        n_population=n_features,
+                        n_samples=nnz_idx,
+                        random_state=self.random_state),
+                    dtype=torch.int64, )
+                data = torch.tensor(
+                    np.random.binomial(1, 0.5, c_idx.size())) * 2 - 1
+                # assign data to only those columns
+                components[i, c_idx] = data
+            components = components.type(torch.float32)
+            components *= np.sqrt(1 / density) / np.sqrt(n_components)
+
+        return components
+
+    def fit(self, embedding: Tensor) -> "my_SparseRandomProjection":
+        n_samples = embedding.shape[0] * embedding.shape[1] * embedding.shape[2]
+        n_features = embedding.shape[-1]
+        # device = embedding.device
+        # ported from sklearn
+        if self.n_components == "auto":
+            self.n_components_ = johnson_lindenstrauss_min_dim(
+                n_samples=n_samples, eps=self.eps)
+
+            if self.n_components_ <= 0:
+                raise ValueError(
+                    "eps=%f and n_samples=%d lead to a target dimension of "
+                    "%d which is invalid" %
+                    (self.eps, n_samples, self.n_components_))
+
+            elif self.n_components_ > n_features:
+                raise ValueError(
+                    "eps=%f and n_samples=%d lead to a target dimension of "
+                    "%d which is larger than the original space with "
+                    "n_features=%d" %
+                    (self.eps, n_samples, self.n_components_, n_features))
+        else:
+            if self.n_components <= 0:
+                raise ValueError("n_components must be greater than 0, got %s" %
+                                 self.n_components)
+
+            elif self.n_components > n_features:
+                warnings.warn(
+                    "The number of components is higher than the number of"
+                    " features: n_features < n_components (%s < %s)."
+                    "The dimensionality of the problem will not be reduced." %
+                    (n_features, self.n_components))
+
+            self.n_components_ = self.n_components
+
+        # Generate projection matrix
+        self.random_matrix = self._make_random_matrix(
+            self.n_components_, n_features=n_features)  # .to(device)
+
+        return self
+
+    def transform(self, embedding: Tensor) -> Tensor:
+        if self.random_matrix is None:
+            raise NotFittedError(
+                "`fit()` has not been called on RandomProjection yet.")
+        self.random_matrix = self.random_matrix.T.unsqueeze(0).unsqueeze(0)
+        projected_embedding = embedding @ self.random_matrix.cuda()
+        print(projected_embedding.shape)
+        return projected_embedding

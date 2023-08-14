@@ -23,7 +23,7 @@ from torchvision.models import resnet18, resnet50, wide_resnet50_2
 from scipy.ndimage import gaussian_filter
 from qinspector.cvlib.workspace import register
 from qinspector.uad.utils.utils_torch import cdist, cholesky_inverse, mahalanobis, mahalanobis_einsum, orthogonal, svd_orthogonal
-from qinspector.uad.utils.k_center_greedy_torch import KCenterGreedy
+from qinspector.uad.utils.k_center_greedy_torch import KCenterGreedy, my_KCenterGreedy
 
 models = {
     "resnet18": resnet18,
@@ -460,7 +460,7 @@ class local_coreset(PaDiMPlus_torch):
         print(my_embedding.shape)
         embedding = embedding.permute((0, 2, 3, 1)).reshape((-1, C))
         print("Creating CoreSet Sampler via k-Center Greedy")
-        sampler = KCenterGreedy(embedding, sampling_ratio=self.k / 100)
+        sampler = my_KCenterGreedy(my_embedding, sampling_ratio=self.k / 100)
         print("Getting the coreset from the main embedding.")
         coreset = sampler.sample_coreset()
         print(
