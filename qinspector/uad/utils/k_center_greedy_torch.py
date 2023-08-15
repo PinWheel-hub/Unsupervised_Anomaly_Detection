@@ -162,18 +162,24 @@ class my_KCenterGreedy:
         """Reset minimum distances."""
         self.min_distances = None
 
-    def update_distances(self, cluster_centers: List[int]) -> None:
+    def update_distances(self, cluster_centers) -> None:
         """Update min distances given cluster centers.
 
         Args:
             cluster_centers (List[int]): indices of cluster centers
         """
 
-        if cluster_centers:
-            centers = self.features[cluster_centers]
-            distance = pairwise_distance(self.features, centers).reshape(
-                (-1, 1))
-
+        if [cluster_centers]:
+            centers = self.features[torch.arange(cluster_centers.shape[0])[:, None, None],
+                                        torch.arange(cluster_centers.shape[1])[None, :, None],
+                                        cluster_centers[:, :, None], :]
+            # centers = self.features[cluster_centers]
+            centers = centers.expand_as(self.features)
+            squared_diff = (centers - self.features) ** 2
+            distance = squared_diff.sum(dim=-1)
+            distance = torch.sqrt(distance)
+            # distance = pairwise_distance(self.features, centers).reshape((-1, 1))
+            print(distance.shape)
             if self.min_distances is None:
                 self.min_distances = distance
             else:
@@ -204,9 +210,9 @@ class my_KCenterGreedy:
             self.update_distances(cluster_centers=selected_idxs)
 
         selected_coreset_idxs = []
-        idx = torch.randint(high=self.n_observations, size=(1, ))  #.item()
+        idx = torch.randint(high=self.n_observations, size=(4, 4))  #.item()
         for _ in tqdm(range(self.coreset_size)):
-            self.update_distances(cluster_centers=[idx])
+            self.update_distances(cluster_centers=idx)
             idx = torch.argmax(self.min_distances)
             #if idx in selected_idxs:
             #    raise ValueError("New indices should not be in selected indices.")

@@ -364,5 +364,4 @@ class my_SparseRandomProjection(BaseRandomProjection):
                 "`fit()` has not been called on RandomProjection yet.")
         self.random_matrix = self.random_matrix.T.unsqueeze(0).unsqueeze(0)
         projected_embedding = embedding @ self.random_matrix.cuda()
-        print(projected_embedding.shape)
         return projected_embedding
