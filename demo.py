@@ -16,8 +16,13 @@ index = torch.tensor([[1, 3], [5, 7]])
 s = c[torch.arange(index.shape[0])[:, None, None],
                             torch.arange(index.shape[1])[None, :, None],
                             index[:, :, None], :]
-s = s.expand_as(c)
-squared_diff = (s - c)**2
+s1 = s.expand_as(c)
+squared_diff = (s1 - c)**2
 distance = squared_diff.sum(dim=-1)
 distance = torch.sqrt(distance)
-print(distance, distance.shape)
+# print(distance, distance.shape)
+
+c[torch.arange(index.shape[0])[:, None, None],
+            torch.arange(index.shape[1])[None, :, None],
+            index[:, :, None]] = 0
+print(c)

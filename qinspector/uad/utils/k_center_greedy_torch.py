@@ -179,7 +179,6 @@ class my_KCenterGreedy:
             distance = squared_diff.sum(dim=-1)
             distance = torch.sqrt(distance)
             # distance = pairwise_distance(self.features, centers).reshape((-1, 1))
-            print(distance.shape)
             if self.min_distances is None:
                 self.min_distances = distance
             else:
@@ -210,15 +209,17 @@ class my_KCenterGreedy:
             self.update_distances(cluster_centers=selected_idxs)
 
         selected_coreset_idxs = []
-        idx = torch.randint(high=self.n_observations, size=(4, 4))  #.item()
+        idx = torch.randint(high=self.n_observations, size=(4, 4)).cuda()  #.item()
         for _ in tqdm(range(self.coreset_size)):
             self.update_distances(cluster_centers=idx)
-            idx = torch.argmax(self.min_distances)
+            idx = torch.argmax(self.min_distances, dim=-1)
             #if idx in selected_idxs:
             #    raise ValueError("New indices should not be in selected indices.")
-            self.min_distances[idx] = 0
+            self.min_distances[torch.arange(idx.shape[0])[:, None, None],
+                                        torch.arange(idx.shape[1])[None, :, None],
+                                        idx[:, :, None]] = 0
             selected_coreset_idxs.append(idx)
-        return torch.tensor(selected_coreset_idxs) # torch.concat(selected_coreset_idxs)
+        return torch.stack(selected_coreset_idxs, dim=-1) # torch.concat(selected_coreset_idxs)
 
     def sample_coreset(self, selected_idxs: Optional[List[int]]=None) -> Tensor:
         """Select coreset from the embedding.
@@ -239,6 +240,7 @@ class my_KCenterGreedy:
         """
 
         idxs = self.select_coreset_idxs(selected_idxs)
-        coreset = self.embedding[idxs]
-
+        coreset = self.embedding[torch.arange(idxs.shape[0])[:, None, None],
+                                        torch.arange(idxs.shape[1])[None, :, None],
+                                        idxs, :]
         return coreset

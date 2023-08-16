@@ -457,8 +457,7 @@ class local_coreset(PaDiMPlus_torch):
         C = embedding.shape[1]
         my_embedding = embedding.permute((2, 3, 0, 1)).reshape((4, 8, 4, 8, -1, C))
         my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((4, 4, -1, C))
-        print(my_embedding.shape)
-        embedding = embedding.permute((0, 2, 3, 1)).reshape((-1, C))
+        # embedding = embedding.permute((0, 2, 3, 1)).reshape((-1, C))
         print("Creating CoreSet Sampler via k-Center Greedy")
         sampler = my_KCenterGreedy(my_embedding, sampling_ratio=self.k / 100)
         print("Getting the coreset from the main embedding.")
@@ -484,8 +483,10 @@ class local_coreset(PaDiMPlus_torch):
     def generate_scores_map(self, embedding, out_shape, gaussian_blur=True):
         # Nearest Neighbours distances
         B, C, H, W = embedding.shape
-        embedding = embedding.permute((0, 2, 3, 1)).reshape((B, H * W, C))
-        distances = self.nearest_neighbors(embedding=embedding, n_neighbors=9)
+        my_embedding = embedding.permute((2, 3, 0, 1)).reshape((4, 8, 4, 8, -1, C))
+        my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((4, 4, -1, C)).unsqueeze(0)
+        # embedding = embedding.permute((0, 2, 3, 1)).reshape((B, H * W, C))
+        distances = self.nearest_neighbors(embedding=my_embedding, n_neighbors=9)
         distances = distances.permute((2, 0, 1))  # n_neighbors, B, HW
         image_score = []
         for i in range(B):
@@ -498,13 +499,13 @@ class local_coreset(PaDiMPlus_torch):
     def nearest_neighbors(self, embedding, n_neighbors: int=9):
         """Compare embedding Features with the memory bank to get Nearest Neighbours distance
         """
-        B, HW, C = embedding.shape
-        n_coreset = self.memory_bank.shape[0]
+        B, H, W, N, C = embedding.shape
+        n_coreset = self.memory_bank.shape[-2]
         distances = []  # paddle.zeros((B, HW, n_coreset))
         for i in range(B):
             distances.append(
                 cdist(
-                    embedding[i, :, :], self.memory_bank,
+                    embedding[i, :, :, :, :], self.memory_bank,
                     p=2.0))  # euclidean norm
         distances = torch.stack(distances, 0)
         distances, _ = distances.topk(k=n_neighbors, axis=-1, largest=False)
