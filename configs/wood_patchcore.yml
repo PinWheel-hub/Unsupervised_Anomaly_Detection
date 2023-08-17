@@ -1,7 +1,7 @@
 # common arguments
 device: cuda:2
 seed: 3
-model: &model pacthcore
+model: &model patchcore
 backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
 method: coreset # projection method, one of [sample, ortho, svd_ortho, gaussian, coreset]
 k: 10  # using feature channels
@@ -26,5 +26,6 @@ save_pic: True # Whether to save one output example picture in val and predict;
 model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
-img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/color/000.png
+img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/good
+result_path: [output/, *model, _, *backbone, _, *category, '/good']
 threshold: 0.5

@@ -22,7 +22,7 @@ from torchvision.models import resnet18, resnet50, wide_resnet50_2
 
 from scipy.ndimage import gaussian_filter
 from qinspector.cvlib.workspace import register
-from qinspector.uad.utils.utils_torch import cdist, cholesky_inverse, mahalanobis, mahalanobis_einsum, orthogonal, svd_orthogonal
+from qinspector.uad.utils.utils_torch import cdist, my_cdist, cholesky_inverse, mahalanobis, mahalanobis_einsum, orthogonal, svd_orthogonal
 from qinspector.uad.utils.k_center_greedy_torch import KCenterGreedy, my_KCenterGreedy
 
 models = {
@@ -503,12 +503,9 @@ class local_coreset(PaDiMPlus_torch):
         n_coreset = self.memory_bank.shape[-2]
         distances = []  # paddle.zeros((B, HW, n_coreset))
         for i in range(B):
-            distances.append(
-                cdist(
-                    embedding[i, :, :, :, :], self.memory_bank,
-                    p=2.0))  # euclidean norm
+            distances.append(my_cdist(embedding[i, :, :, :, :], self.memory_bank, n_neighbors))  # euclidean norm
         distances = torch.stack(distances, 0)
-        distances, _ = distances.topk(k=n_neighbors, axis=-1, largest=False)
+        # distances, _ = distances.topk(k=n_neighbors, axis=-1, largest=False)
         return distances  # B,
 
     @staticmethod

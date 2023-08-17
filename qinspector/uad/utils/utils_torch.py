@@ -132,6 +132,33 @@ def cdist(X, Y, p=2.0):
     D = torch.stack(D, 0)
     return D
 
+def my_cdist(X, Y, n_neighbors):
+    # 2d P, C = X.shape| R, C = Y.shape -> P,R
+    H, W, _, _ = X.shape
+    # 3d B, P, C = X.shape|1, R, C = Y.shape -> B, P,R
+    # D = paddle.linalg.norm(X[:, None, :]-Y[None, :, :], axis=-1)
+    """D = paddle.zeros((P, R))
+    for i in range(P):
+        D[i,:] = paddle.linalg.norm(X[i, None, :]-Y, axis=-1)
+        #D[i,:] = (X[i, None, :]-Y).square().sum(-1).sqrt_()
+    #"""
+    D = []
+    for i in range(H):
+        D.append([])
+        for j in range(W):
+            local_Y = Y[max(0, i - 1): min(H, i + 2), max(0, j - 1): min(W, j + 2), :, :]
+            local_Y = local_Y.reshape(-1, local_Y.shape[-1])[None, :, :]
+            local_X = X[i, j, :, :][:, None, :]
+            distance = (local_X - local_Y) ** 2
+            distance, _ = torch.sqrt(distance.sum(-1)).topk(k=n_neighbors, axis=-1, largest=False)
+            D[i].append(distance)
+            # D.append(torch.linalg.norm(X[i, None, :] - Y, axis=-1))
+    D = [torch.stack(row, 0) for row in D]
+    D = torch.stack(D, 0)
+    D = D.reshape((4, 4, 8, 8, -1))
+    D = D.permute((0, 2, 1, 3, 4)).reshape(-1, n_neighbors)
+    return D
+
 
 def compute_pro_(y_true: np.ndarray, binary_amaps: np.ndarray,
                  method='mean') -> float:
