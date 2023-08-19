@@ -122,12 +122,12 @@ def main():
 def predict(args, model, x, img_name):
     # extract test set features
     # model prediction
-    # start_time = datetime.datetime.now()
+    start_time = datetime.datetime.now()
     out = model(x.cuda())
     out = model.project(out)
     score_map, image_score = model.generate_scores_map(out, x.shape[-2:])
-    # end_time = datetime.datetime.now()
-    # print("代码执行时间：", (end_time - start_time).total_seconds(), "秒")
+    end_time = datetime.datetime.now()
+    print("代码执行时间：", (end_time - start_time).total_seconds(), "秒")
     # score_map = np.concatenate(score_map, 0)
 
     # Normalization

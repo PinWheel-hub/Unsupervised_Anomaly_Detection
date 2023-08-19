@@ -132,16 +132,28 @@ def cdist(X, Y, p=2.0):
     D = torch.stack(D, 0)
     return D
 
+def shift(matrix: torch.tensor, r: int, c: int):
+    shifted_matrix = torch.zeros_like(matrix)
+    if r > 0:
+        new_rows = torch.arange(r, matrix.shape[0])
+    else:
+        new_rows = torch.arange(matrix.shape[0] + r)
+    if c > 0:
+        new_columns = torch.arange(c, matrix.shape[1])
+    else:
+        new_columns = torch.arange(matrix.shape[1] + c)
+    if r <= 0 and c <= 0:
+        shifted_matrix[new_rows[:, None], new_columns[None, :]] = matrix[-r:, -c:]
+    elif r <= 0:
+        shifted_matrix[new_rows[:, None], new_columns[None, :]] = matrix[-r:, :-c]
+    elif c <= 0:
+        shifted_matrix[new_rows[:, None], new_columns[None, :]] = matrix[:-r, -c:]
+    else:
+        shifted_matrix[new_rows[:, None], new_columns[None, :]] = matrix[:-r, :-c]
+    return shifted_matrix
+
 def my_cdist(X, Y, n_neighbors):
-    # 2d P, C = X.shape| R, C = Y.shape -> P,R
     H, W, _, _ = X.shape
-    # 3d B, P, C = X.shape|1, R, C = Y.shape -> B, P,R
-    # D = paddle.linalg.norm(X[:, None, :]-Y[None, :, :], axis=-1)
-    """D = paddle.zeros((P, R))
-    for i in range(P):
-        D[i,:] = paddle.linalg.norm(X[i, None, :]-Y, axis=-1)
-        #D[i,:] = (X[i, None, :]-Y).square().sum(-1).sqrt_()
-    #"""
     D = []
     for i in range(H):
         D.append([])
@@ -152,9 +164,20 @@ def my_cdist(X, Y, n_neighbors):
             distance = (local_X - local_Y) ** 2
             distance, _ = torch.sqrt(distance.sum(-1)).topk(k=n_neighbors, axis=-1, largest=False)
             D[i].append(distance)
-            # D.append(torch.linalg.norm(X[i, None, :] - Y, axis=-1))
     D = [torch.stack(row, 0) for row in D]
     D = torch.stack(D, 0)
+
+    # local_Y = torch.tensor([]).cuda()
+    # for i in range(-1, 2):
+    #     for j in range(-1, 2):
+    #         S = shift(Y, i, j)
+    #         local_Y = torch.cat((local_Y, S), dim=-2)
+    # local_Y = local_Y[:, :, None, :, :]
+    # X = X[:, :, :, None, :]
+    # D = (X - local_Y)
+    # D.pow_(2)
+    # D, _ = torch.sqrt(D.sum(-1)).topk(k=n_neighbors, axis=-1, largest=False)
+
     D = D.reshape((4, 4, 8, 8, -1))
     D = D.permute((0, 2, 1, 3, 4)).reshape(-1, n_neighbors)
     return D
