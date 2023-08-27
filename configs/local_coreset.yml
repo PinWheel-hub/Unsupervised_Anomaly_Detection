@@ -10,21 +10,22 @@ pretrained_model_path: null # checkpoints/resnet18.pth
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category wood
+category: &category cable
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/cable/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name wood.pth
+save_name: &save_name cable.pth
 
 # train arguments
-do_eval: False  # After training, whether to eval model;
+do_eval: True  # After training, whether to eval model;
 
 # val and predict arguments
+test_path: /data/data_wbw/data/mvtec_anomaly_detection/
 save_pic: True # Whether to save one output example picture in val and predict;
 model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
-img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/hole
+img_path: /data/data_wbw/data/mvtec_anomaly_detection/leather/test/hole
 result_path: [output/, *model, _, *backbone, _, *category, '/hole']
 threshold: 2.2

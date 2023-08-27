@@ -8,12 +8,12 @@ pretrained_model_path: checkpoints/resnet18.pth
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category wood
+category: &category leather
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/leather/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name wood.pth
+save_name: &save_name leather.pth
 
 # train arguments
 do_eval: True  # After training, whether to eval model;
@@ -24,5 +24,6 @@ save_pic: True # Whether to save one output example picture in val and predict;
 model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
-img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/color/000.png 
+img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/color/000.png
+result_path: [output/, *model, _, *backbone, _, *category, '/color']
 threshold: 0.5

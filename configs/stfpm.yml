@@ -11,7 +11,7 @@ category: &category wood  # Category name for MvTec AD dataset, also support one
 resize: [256, 256]
 data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name tyre.pth
+save_name: &save_name wood.pth
 
 # train arguments
 epochs: 50
@@ -31,4 +31,5 @@ compute_pro: False
 # predict arguments
 save_pic: True
 img_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/test/color/000.png
+result_path: [output/, *model, _, *backbone, _, *category, '/color']
 threshold: 0.01
