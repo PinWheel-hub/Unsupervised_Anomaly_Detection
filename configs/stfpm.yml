@@ -7,11 +7,11 @@ backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category wood  # Category name for MvTec AD dataset, also support one of [textures, objects, all]
+category: &category cable  # Category name for MvTec AD dataset, also support one of [textures, objects, all]
 resize: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/cable/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name wood.pth
+save_name: &save_name cable.pth
 
 # train arguments
 epochs: 50

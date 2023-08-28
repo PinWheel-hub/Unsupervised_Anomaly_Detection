@@ -209,7 +209,7 @@ class my_KCenterGreedy:
             self.update_distances(cluster_centers=selected_idxs)
 
         selected_coreset_idxs = []
-        idx = torch.randint(high=self.n_observations, size=(4, 4)).cuda()  #.item()
+        idx = torch.randint(high=self.n_observations, size=(self.embedding.shape[0], self.embedding.shape[1])).cuda()  #.item()
         for _ in tqdm(range(self.coreset_size)):
             self.update_distances(cluster_centers=idx)
             idx = torch.argmax(self.min_distances, dim=-1)

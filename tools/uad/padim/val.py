@@ -247,12 +247,8 @@ def val(args, model, test_dataloader, class_name, idx):
     total_pixel_roc_auc.append(per_pixel_rocauc)
 
     if args.save_pic:
-        save_name = os.path.join(args.save_path)
-        dir_name = os.path.dirname(save_name)
-        if dir_name and not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-        plot_fig(test_imgs, scores, gt_mask_list, threshold, save_name,
-                 class_name)
+        save_path = os.path.join(args.save_path, 'val.png')
+        plot_fig(test_imgs, scores, gt_mask_list, threshold, save_path, class_name)
     return np.mean(total_roc_auc), np.mean(total_pixel_roc_auc)
 
 

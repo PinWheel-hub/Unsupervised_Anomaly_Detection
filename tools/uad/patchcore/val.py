@@ -215,10 +215,8 @@ def val(args, model, test_dataloader, class_name):
 
     print([class_name, img_auroc, per_pixel_auroc, total_PRO])
     if args.save_pic:
-        save_dir = os.path.join(
-            args.save_path)
-        os.makedirs(save_dir, exist_ok=True)
-        plot_fig(test_imgs, score_map, gt_mask_list, threshold, save_dir,
+        save_path = os.path.join(args.save_path, 'val.png')
+        plot_fig(test_imgs, score_map, gt_mask_list, threshold, save_path,
                  class_name)
     return img_auroc, per_pixel_auroc, total_PRO
 
