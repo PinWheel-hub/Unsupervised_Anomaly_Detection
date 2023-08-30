@@ -10,12 +10,12 @@ pretrained_model_path: null # checkpoints/resnet18.pth
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category cable
+category: &category hazelnut
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/cable/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/hazelnut/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name cable.pth
+save_name: &save_name hazelnut.pth
 
 # train arguments
 do_eval: true  # After training, whether to eval model;

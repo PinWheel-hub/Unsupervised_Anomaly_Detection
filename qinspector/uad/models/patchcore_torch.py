@@ -405,6 +405,7 @@ class PatchCore_torch(PaDiMPlus_torch):
 
 @register
 class local_coreset(PaDiMPlus_torch):
+    blocks = [8, 8]
     def load(self, state):
         self.memory_bank = state['memory_bank'].cuda()
 
@@ -455,8 +456,14 @@ class local_coreset(PaDiMPlus_torch):
     @torch.no_grad()
     def compute_stats(self, embedding):
         C = embedding.shape[1]
-        my_embedding = embedding.permute((2, 3, 0, 1)).reshape((4, 8, 4, 8, -1, C))
-        my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((4, 4, -1, C))
+        my_embedding = embedding.permute((2, 3, 0, 1)).reshape((self.blocks[0], 
+                                                                32 // self.blocks[0], 
+                                                                self.blocks[1], 
+                                                                32 // self.blocks[1], 
+                                                                -1, C))
+        my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((self.blocks[0], 
+                                                                         self.blocks[1], 
+                                                                         -1, C))
         # embedding = embedding.permute((0, 2, 3, 1)).reshape((-1, C))
         print("Creating CoreSet Sampler via k-Center Greedy")
         sampler = my_KCenterGreedy(my_embedding, sampling_ratio=self.k / 100)
@@ -483,8 +490,14 @@ class local_coreset(PaDiMPlus_torch):
     def generate_scores_map(self, embedding, out_shape, gaussian_blur=True):
         # Nearest Neighbours distances
         B, C, H, W = embedding.shape
-        my_embedding = embedding.permute((2, 3, 0, 1)).reshape((4, 8, 4, 8, -1, C))
-        my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((4, 4, -1, C)).unsqueeze(0)
+        my_embedding = embedding.permute((2, 3, 0, 1)).reshape((self.blocks[0], 
+                                                                32 // self.blocks[0], 
+                                                                self.blocks[1], 
+                                                                32 // self.blocks[1], 
+                                                                -1, C))
+        my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((self.blocks[0], 
+                                                                         self.blocks[1], 
+                                                                         -1, C)).unsqueeze(0)
         # embedding = embedding.permute((0, 2, 3, 1)).reshape((B, H * W, C))
         distances = self.nearest_neighbors(embedding=my_embedding, n_neighbors=9)
         distances = distances.permute((2, 0, 1))  # n_neighbors, B, HW

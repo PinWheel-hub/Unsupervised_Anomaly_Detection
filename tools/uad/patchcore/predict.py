@@ -107,14 +107,14 @@ def main():
         for img_file in img_files:
             x = Image.open(os.path.join(args.img_path, img_file)).convert('RGB')
             x = transform_x(x).unsqueeze(0)
-            score_map = predict(args, model, x, img_file)
-            results.append(score_map.max())
+            image_score = predict(args, model, x, img_file)
+            results.append(image_score)
         print(results)
     else:
         x = Image.open(args.img_path).convert('RGB')
         x = transform_x(x).unsqueeze(0)
-        score_map = predict(args, model, x, os.path.basename(args.img_path))
-        print(score_map.max(), score_map.min())
+        image_score = predict(args, model, x, os.path.basename(args.img_path))
+        print(image_score)
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t' +
           "Predict :  Picture {}".format(args.img_path) + " done!")
 
@@ -131,16 +131,17 @@ def predict(args, model, x, img_name):
     # score_map = np.concatenate(score_map, 0)
 
     # Normalization
-    if args.norm:
-        max_score = score_map.max()
-        min_score = score_map.min()
+    # if args.norm:
+    #     max_score = score_map.max()
+    #     min_score = score_map.min()
         # (score_map - min_score) / (max_score - min_score)
-    print(os.path.basename(img_name), score_map.max())
+    image_score = image_score[0]
+    print(os.path.basename(img_name), image_score)
     if args.save_pic:
-        save_path = os.path.join(args.result_path, f'{os.path.splitext(img_name)[0]}: {score_map.max()}.png')
+        save_path = os.path.join(args.result_path, f'{os.path.splitext(img_name)[0]}: {image_score}.png')
         plot_fig(x.numpy(), score_map, None, args.threshold, save_path,
              args.category, args.save_pic)
-    return score_map
+    return image_score
 
 
 if __name__ == '__main__':

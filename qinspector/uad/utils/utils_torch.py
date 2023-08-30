@@ -154,6 +154,7 @@ def shift(matrix: torch.tensor, r: int, c: int):
 
 def my_cdist(X, Y, n_neighbors):
     H, W, _, _ = X.shape
+
     D = []
     for i in range(H):
         D.append([])
@@ -172,16 +173,16 @@ def my_cdist(X, Y, n_neighbors):
     #     for j in range(-1, 2):
     #         S = shift(Y, i, j)
     #         local_Y = torch.cat((local_Y, S), dim=-2)
-    # local_Y = local_Y[:, :, None, :, :]
+    
+    # local_Y = Y[:, :, None, :, :]
     # X = X[:, :, :, None, :]
     # D = (X - local_Y)
     # D.pow_(2)
     # D, _ = torch.sqrt(D.sum(-1)).topk(k=n_neighbors, axis=-1, largest=False)
 
-    D = D.reshape((4, 4, 8, 8, -1))
+    D = D.reshape((H, W, 32 // H, 32 // W, -1))
     D = D.permute((0, 2, 1, 3, 4)).reshape(-1, n_neighbors)
     return D
-
 
 def compute_pro_(y_true: np.ndarray, binary_amaps: np.ndarray,
                  method='mean') -> float:
