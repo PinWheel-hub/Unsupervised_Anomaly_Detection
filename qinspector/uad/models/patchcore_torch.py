@@ -381,10 +381,7 @@ class PatchCore_torch(PaDiMPlus_torch):
         n_coreset = self.memory_bank.shape[0]
         distances = []  # paddle.zeros((B, HW, n_coreset))
         for i in range(B):
-            distances.append(
-                cdist(
-                    embedding[i, :, :], self.memory_bank,
-                    p=2.0))  # euclidean norm
+            distances.append(torch.cdist(embedding[i, :, :], self.memory_bank, p=2.0))  # euclidean norm
         distances = torch.stack(distances, 0)
         distances, _ = distances.topk(k=n_neighbors, axis=-1, largest=False)
         return distances  # B,
@@ -405,7 +402,10 @@ class PatchCore_torch(PaDiMPlus_torch):
 
 @register
 class local_coreset(PaDiMPlus_torch):
-    blocks = [8, 8]
+    def __init__(self, arch='resnet18', pretrained=True, k=10, method='sample', blocks=[8, 8], feature_size=[32, 32]):
+        super().__init__(arch=arch, pretrained=pretrained, k=k, method=method)
+        self.blocks = blocks
+        self.feature_size = feature_size
     def load(self, state):
         self.memory_bank = state['memory_bank'].cuda()
 
@@ -432,9 +432,32 @@ class local_coreset(PaDiMPlus_torch):
         res.append(F.avg_pool2d(x, 3, 1, 1))
         return res
 
+    def attention(self, q, k, v):
+        self.num_heads = 2
+
+        width = q.shape[3]
+        q = torch.flatten(q, 2, 3)
+        k = torch.flatten(k, 2, 3)
+        v = torch.flatten(v, 2, 3)
+        B, C, N = q.shape
+        
+        q = q.reshape(B, C // self.num_heads, self.num_heads, N).permute(0, 2, 1, 3).reshape(B * self.num_heads, C // self.num_heads, N)
+        k = k.reshape(B, C // self.num_heads, self.num_heads, N).permute(0, 2, 1, 3).reshape(B * self.num_heads, C // self.num_heads, N)
+        v = v.reshape(B, C // self.num_heads, self.num_heads, N).permute(0, 2, 1, 3).reshape(B * self.num_heads, C // self.num_heads, N)
+
+        q = torch.reshape(q, (q.shape[0], q.shape[1], q.shape[2]))
+        k = torch.reshape(q, (q.shape[0], q.shape[2], q.shape[1]))
+        v = torch.reshape(v, (v.shape[0], v.shape[1], v.shape[2]))
+        out = torch.matmul(q, k)
+        out = torch.nn.functional.softmax(out, dim=-1)
+        out = torch.matmul(out, v)
+        out = out.reshape(B, C, width, width)
+        return out
+
     @torch.no_grad()
     def forward(self, x):
-        pool = nn.AvgPool2d(3, 1, 1, count_include_pad=True)
+        avep = nn.AvgPool2d(3, 1, 1, count_include_pad=True)
+        maxp = nn.MaxPool2d(3, 1, 1)
         res = []
         x = self.model.conv1(x)
         x = self.model.bn1(x)
@@ -442,24 +465,36 @@ class local_coreset(PaDiMPlus_torch):
         x = self.model.maxpool(x)
         x = self.model.layer1(x)
         x = self.model.layer2(x)
-        res.append(pool(x))
+
+        q = avep(x)
+        k = maxp(x)
+        v = maxp(x)
+        out = self.attention(q, k, v)
+        out = out + avep(x)
+        # out = torch.concat((out, maxp(x)), dim=1)
+        res.append(out)
+
         x = self.model.layer3(x)
-        res.append(pool(x))
-        x = res
-        for i in range(1, len(x)):
-            x[i] = F.interpolate(x[i], scale_factor=2**i, mode="nearest")
-        # print([i.shape for i in x])
-        x = torch.cat(x, 1)
-        # x = self.project(x)
-        return x
+
+        q = avep(x)
+        k = maxp(x)
+        v = avep(x)
+        out = self.attention(q, k, v)
+        out = out + avep(x)
+        # out = torch.concat((out, pool(x)), dim=1)
+        res.append(out)
+        
+        res[1] = F.interpolate(res[1], scale_factor=2, mode="nearest")
+        res = torch.cat(res, 1)
+        return res
 
     @torch.no_grad()
     def compute_stats(self, embedding):
         C = embedding.shape[1]
         my_embedding = embedding.permute((2, 3, 0, 1)).reshape((self.blocks[0], 
-                                                                32 // self.blocks[0], 
+                                                                self.feature_size[0] // self.blocks[0], 
                                                                 self.blocks[1], 
-                                                                32 // self.blocks[1], 
+                                                                self.feature_size[1] // self.blocks[1], 
                                                                 -1, C))
         my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((self.blocks[0], 
                                                                          self.blocks[1], 
@@ -491,9 +526,9 @@ class local_coreset(PaDiMPlus_torch):
         # Nearest Neighbours distances
         B, C, H, W = embedding.shape
         my_embedding = embedding.permute((2, 3, 0, 1)).reshape((self.blocks[0], 
-                                                                32 // self.blocks[0], 
+                                                                self.feature_size[0] // self.blocks[0], 
                                                                 self.blocks[1], 
-                                                                32 // self.blocks[1], 
+                                                                self.feature_size[1] // self.blocks[1], 
                                                                 -1, C))
         my_embedding = my_embedding.permute((0, 2, 1, 3, 4, 5)).reshape((self.blocks[0], 
                                                                          self.blocks[1], 
@@ -516,9 +551,9 @@ class local_coreset(PaDiMPlus_torch):
         n_coreset = self.memory_bank.shape[-2]
         distances = []  # paddle.zeros((B, HW, n_coreset))
         for i in range(B):
-            distances.append(my_cdist(embedding[i, :, :, :, :], self.memory_bank, n_neighbors))  # euclidean norm
+            distances.append(my_cdist(embedding[i, :, :, :, :], self.memory_bank, n_neighbors, feature_size=self.feature_size))  # euclidean norm
         distances = torch.stack(distances, 0)
-        # distances, _ = distances.topk(k=n_neighbors, axis=-1, largest=False)
+        distances, _ = distances.topk(k=n_neighbors, axis=-1, largest=False)
         return distances  # B,
 
     @staticmethod
@@ -527,11 +562,11 @@ class local_coreset(PaDiMPlus_torch):
         """
         # distances[n_neighbors, B, HW]
         max_scores = torch.argmax(distance[0, :])
-        confidence = distance[:,
-                              max_scores]  # paddle.index_select(distances, max_scores, -1)
+        confidence = distance[:, max_scores]  # paddle.index_select(distances, max_scores, -1)
         weights = 1 - (torch.max(torch.exp(confidence)) /
                        torch.sum(torch.exp(confidence)))
         score = weights * torch.max(distance[0, :])
+        # score = torch.sum(confidence) / confidence.shape[0]
         return score.item()
 
 

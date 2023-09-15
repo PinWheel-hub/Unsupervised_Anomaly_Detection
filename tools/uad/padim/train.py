@@ -20,6 +20,7 @@ import argparse
 import datetime
 from random import sample
 from collections import OrderedDict
+from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,7 @@ parent_path = os.path.abspath(os.path.join(__file__, *(['..'] * 4)))
 sys.path.insert(0, parent_path)
 from qinspector.uad.datasets import mvtec_torch
 from qinspector.uad.models.padim_torch import ResNet_PaDiM_torch
+from qinspector.uad.utils.utils_torch import str2bool
 from qinspector.cvlib.uad_configs import ConfigParser
 from val import val
 
@@ -45,7 +47,7 @@ CLASS_NAMES = textures + objects
 fins = {"resnet18": 448, "resnet50": 1792, "wide_resnet50_2": 1792}
 
 def argsparser():
-    parser = argparse.ArgumentParser('PaDiM')
+    parser = argparse.ArgumentParser('PatchCore')
     parser.add_argument(
         "--config",
         type=str,
@@ -53,12 +55,16 @@ def argsparser():
         help="Path of config",
         required=True)
     parser.add_argument("--device", type=str, default=None)
-    parser.add_argument("--batch_size", type=int, default=None)
+    parser.add_argument('--batch_size', type=int, default=None)
     parser.add_argument('--num_workers', type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--data_path", type=str, default=None)
-    parser.add_argument("--save_path", type=str, default=None)
-    parser.add_argument("--category", type=str, default=None)
+    parser.add_argument('--data_path', type=str, default=None)
+    parser.add_argument('--save_path', type=str, default=None)
+    parser.add_argument(
+        "--category",
+        type=str,
+        default=None,
+        help="category name for MvTec AD dataset")
     parser.add_argument('--resize', type=list or tuple, default=None)
     parser.add_argument('--crop_size', type=list or tuple, default=None)
     parser.add_argument(
@@ -66,11 +72,32 @@ def argsparser():
         type=str,
         default=None,
         help="backbone model arch, one of [resnet18, resnet50, wide_resnet50_2]")
+    parser.add_argument(
+        "--k", type=int, default=None, help="used feature channels")
+    parser.add_argument(
+        "--method",
+        type=str,
+        default=None,
+        choices=[
+            'sample', 'h_sample', 'ortho', 'svd_ortho', 'gaussian', 'coreset'
+        ],
+        help="projection method, one of [sample, ortho, svd_ortho, gaussian, coreset]"
+    )
     parser.add_argument("--do_eval", type=bool, default=None)
-    parser.add_argument("--save_pic", type=bool, default=None)
+    parser.add_argument("--save_pic", type=str2bool, default=None)
 
-    parser.add_argument("--save_model", type=bool, default=True)
-    parser.add_argument("--print_freq", type=int, default=20)
+    parser.add_argument("--save_model", type=str2bool, default=True)
+    parser.add_argument('--test_batch_size', type=int, default=1)
+    parser.add_argument(
+        "--inc", action='store_true', help="use incremental cov & mean")
+    parser.add_argument('--eval_PRO', type=bool, default=True)
+    parser.add_argument(
+        '--eval_threthold_step',
+        type=int,
+        default=500,
+        help="threthold_step when computing PRO Score")
+    parser.add_argument('--einsum', action='store_true')
+    parser.add_argument('--non_partial_AUC', action='store_true')
     return parser.parse_args()
 
 
@@ -86,7 +113,7 @@ def main():
     torch.cuda.set_device(args.device)
 
     # build model
-    if args.pretrained_model_path == None:
+    if not hasattr(args, 'pretrained_model_path') or args.pretrained_model_path is None:
         model = ResNet_PaDiM_torch(arch=args.backbone, pretrained=True).cuda()
     else:
         model = ResNet_PaDiM_torch(arch=args.backbone, pretrained=False).cuda()
@@ -105,7 +132,7 @@ def main():
     else:
         class_names = [args.category]
 
-    csv_columns = ['category', 'Image_AUROC', 'Pixel_AUROC']
+    csv_columns = ['category', 'Image_AUROC', 'Pixel_AUROC', 'PRO_score']
     csv_name = os.path.join(args.save_path,
                             '{}_seed{}.csv'.format(args.category, args.seed))
     for i, class_name in enumerate(class_names):
@@ -163,7 +190,7 @@ def train(args, model, train_dataloader, idx, class_name):
     epoch_begin = time.time()
     end_time = time.time()
 
-    for index, x in enumerate(train_dataloader):
+    for index, x in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
         start_time = time.time()
         data_time = start_time - end_time
 
@@ -178,13 +205,13 @@ def train(args, model, train_dataloader, idx, class_name):
         end_time = time.time()
         batch_time = end_time - start_time
 
-        if index % args.print_freq == 0:
-            print(
-                datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t' +
-                "Epoch {}[{}/{}]: loss:{:.5f}, lr:{:.5f}, batch time:{:.4f}, data time:{:.4f}".
-                format(0, index + 1,
-                       len(train_dataloader), 0,
-                       float(0), float(batch_time), float(data_time)))
+        # if index % args.print_freq == 0:
+        #     print(
+        #         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t' +
+        #         "Epoch {}[{}/{}]: loss:{:.5f}, lr:{:.5f}, batch time:{:.4f}, data time:{:.4f}".
+        #         format(0, index + 1,
+        #                len(train_dataloader), 0,
+        #                float(0), float(batch_time), float(data_time)))
 
     for k, v in train_outputs.items():
         train_outputs[k] = torch.cat(v, 0)
@@ -205,7 +232,7 @@ def train(args, model, train_dataloader, idx, class_name):
     mean = torch.mean(embedding_vectors, axis=0).numpy()
     cov = torch.zeros((C, C, H * W)).numpy()
     I = np.identity(C)
-    for i in range(H * W):
+    for i in tqdm(range(H * W)):
         cov[:, :, i] = np.cov(embedding_vectors[:, :, i].numpy(),
                               rowvar=False) + 0.01 * I
     # save learned distribution

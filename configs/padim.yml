@@ -2,18 +2,18 @@
 device: cuda:1
 seed: 3
 model: &model padim
-backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
-pretrained_model_path: checkpoints/resnet18.pth
+backbone: &backbone wide_resnet50_2  # Support resnet18, resnet50, wide_resnet50_2
+pretrained_model_path: null # checkpoints/resnet18.pth
 
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category wood
+category: &category transistor
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/transistor/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name wood.pth
+save_name: &save_name transistor.pth
 
 # train arguments
 do_eval: True  # After training, whether to eval model;

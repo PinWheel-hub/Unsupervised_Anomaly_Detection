@@ -40,7 +40,8 @@ class MVTecDataset_torch(Dataset):
                  is_train=True,
                  resize=[256, 256],
                  cropsize=[224, 224],
-                 is_predict=False):
+                 is_predict=False,
+                 max_size=None):
         # assert class_name in CLASS_NAMES, 'class_name: {}, should be in {}'.format(
         #     class_name, CLASS_NAMES)
         self.dataset_root_path = dataset_root_path
@@ -48,6 +49,7 @@ class MVTecDataset_torch(Dataset):
         self.is_train = is_train
         self.resize = resize
         self.cropsize = cropsize
+        self.max_size = max_size
 
         # load dataset
         if not is_predict and is_train:
@@ -80,7 +82,7 @@ class MVTecDataset_torch(Dataset):
         return x, y, mask
 
     def __len__(self):
-        return len(self.x)
+        return len(self.x) if self.max_size is None else self.max_size
 
     def load_dataset_folder(self):
         phase = 'train' if self.is_train else 'test'

@@ -1,10 +1,10 @@
 # common arguments
-device: cuda:0
+device: cuda:1
 seed: 3
 model: &model patchcore
 backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
 method: &method local_coreset # projection method, one of [sample, ortho, svd_ortho, gaussian, coreset]
-k: 2  # using feature channels
+k: 5  # using feature channels
 pretrained_model_path: null # checkpoints/resnet18.pth
 
 # dataset arguments
@@ -13,9 +13,9 @@ num_workers: 0
 category: &category tyre
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/cropped_tyre/1-按规格显著病茨/7.00R16-14PR[AZ630]朝阳无内/train_4000/1 # /data/data_wbw/data/cropped_tyre/006163123012900_3/train/ # /data2/chen/spec10k/006163123012900
+data_path: /data/data_wbw/data/cropped_tyre/1-按规格显著病茨/7.50R16-14PR[CR907]朝阳无内/train_2000/1 # /data/data_wbw/data/cropped_tyre/006163123012900_3/train/ # /data2/chen/spec10k/006163123012900
 save_path: [output/, *method, _, *backbone, _, *category]
-save_name: &save_name 7.00R16-14PR_4000_1.pth
+save_name: &save_name 7.50R16-14PR[CR907]_2000_1.pth
 
 # train arguments
 do_eval: False  # After training, whether to eval model;
@@ -25,6 +25,6 @@ save_pic: True # Whether to save one output example picture in val and predict;
 model_path: [output/, *method, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
-img_path: /data/data_wbw/data/cropped_tyre/1-按规格显著病茨/7.00R16-14PR[AZ630]朝阳无内/632_4000/1 #48.jpg # /data/data_wbw/data/cropped_tyre/006163123012900_3/test/A011141165_0.jpg
-result_path: [output/, *method, _, *backbone, _, *category, '/7.00R16-14PR[AZ630]朝阳无内_632_4000_1']
+img_path: /data/data_wbw/data/cropped_tyre/1-按规格显著病茨/7.50R16-14PR[CR907]朝阳无内/632_2000/1 #48.jpg # /data/data_wbw/data/cropped_tyre/006163123012900_3/test/A011141165_0.jpg
+result_path: [output/, *method, _, *backbone, _, *category, '/7.50R16-14PR[CR907]朝阳无内_632_2000_1']
 threshold: 1.5

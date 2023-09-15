@@ -152,36 +152,28 @@ def shift(matrix: torch.tensor, r: int, c: int):
         shifted_matrix[new_rows[:, None], new_columns[None, :]] = matrix[:-r, :-c]
     return shifted_matrix
 
-def my_cdist(X, Y, n_neighbors):
-    H, W, _, _ = X.shape
+def my_cdist(X, Y, n_neighbors, feature_size=[32, 32]):
+    H, W, N, _ = X.shape
 
-    D = []
-    for i in range(H):
-        D.append([])
-        for j in range(W):
-            local_Y = Y[max(0, i - 1): min(H, i + 2), max(0, j - 1): min(W, j + 2), :, :]
-            local_Y = local_Y.reshape(-1, local_Y.shape[-1])[None, :, :]
-            local_X = X[i, j, :, :][:, None, :]
-            distance = (local_X - local_Y) ** 2
-            distance, _ = torch.sqrt(distance.sum(-1)).topk(k=n_neighbors, axis=-1, largest=False)
-            D[i].append(distance)
-    D = [torch.stack(row, 0) for row in D]
-    D = torch.stack(D, 0)
+    # D = torch.zeros(H, W, N, n_neighbors)
+    # for i in range(H):
+    #     for j in range(W):
+    #         local_Y = Y[max(0, i - 1): min(H, i + 2), max(0, j - 1): min(W, j + 2), :, :]
+    #         local_Y = local_Y.reshape(-1, local_Y.shape[-1])
+    #         local_X = X[i, j, :, :]
+    #         distance = torch.cdist(local_X, local_Y, p=2.0)
+    #         distance, _ = distance.topk(k=n_neighbors, axis=-1, largest=False)
+    #         D[i, j, :, :] = distance
 
     # local_Y = torch.tensor([]).cuda()
     # for i in range(-1, 2):
     #     for j in range(-1, 2):
     #         S = shift(Y, i, j)
     #         local_Y = torch.cat((local_Y, S), dim=-2)
-    
-    # local_Y = Y[:, :, None, :, :]
-    # X = X[:, :, :, None, :]
-    # D = (X - local_Y)
-    # D.pow_(2)
-    # D, _ = torch.sqrt(D.sum(-1)).topk(k=n_neighbors, axis=-1, largest=False)
 
-    D = D.reshape((H, W, 32 // H, 32 // W, -1))
-    D = D.permute((0, 2, 1, 3, 4)).reshape(-1, n_neighbors)
+    D = torch.cdist(X, Y, p=2)
+    D = D.reshape((H, W, feature_size[0] // H, feature_size[1] // W, -1))
+    D = D.permute((0, 2, 1, 3, 4)).reshape(feature_size[0] * feature_size[1], -1)
     return D
 
 def compute_pro_(y_true: np.ndarray, binary_amaps: np.ndarray,

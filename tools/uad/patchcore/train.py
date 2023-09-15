@@ -110,7 +110,7 @@ def main():
     torch.cuda.set_device(args.device)
 
     # build model
-    if args.pretrained_model_path is None:
+    if not hasattr(args, 'pretrained_model_path') or args.pretrained_model_path is None:
         model = get_model(args.method)(arch=args.backbone,
                                     pretrained=True,
                                     k=args.k,
@@ -148,7 +148,8 @@ def main():
             class_name=class_name,
             is_train=True,
             resize=args.resize,
-            cropsize=args.crop_size)
+            cropsize=args.crop_size,
+            max_size=args.max_size if hasattr(args, 'max_size') else None)
         train_dataloader = DataLoader(
             train_dataset,
             batch_size=args.batch_size,

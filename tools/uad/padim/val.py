@@ -41,8 +41,9 @@ parent_path = os.path.abspath(os.path.join(__file__, *(['..'] * 4)))
 sys.path.insert(0, parent_path)
 from qinspector.uad.datasets import mvtec_torch
 from qinspector.uad.models.padim_torch import ResNet_PaDiM_torch
+from qinspector.uad.utils.utils_torch import str2bool
 from qinspector.cvlib.uad_configs import *
-from qinspector.uad.utils.utils_torch import plot_fig
+from qinspector.uad.utils.utils_torch import *
 
 textures = ['carpet', 'grid', 'leather', 'tile', 'wood']
 objects = [
@@ -54,7 +55,7 @@ fins = {"resnet18": 448, "resnet50": 1792, "wide_resnet50_2": 1792}
 
 
 def argsparser():
-    parser = argparse.ArgumentParser('PaDiM')
+    parser = argparse.ArgumentParser('PatchCore')
     parser.add_argument(
         "--config",
         type=str,
@@ -62,12 +63,16 @@ def argsparser():
         help="Path of config",
         required=True)
     parser.add_argument("--device", type=str, default=None)
-    parser.add_argument("--batch_size", type=int, default=None)
+    parser.add_argument('--batch_size', type=int, default=None)
     parser.add_argument('--num_workers', type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--data_path", type=str, default=None)
-    parser.add_argument("--save_path", type=str, default=None)
-    parser.add_argument("--category", type=str, default=None)
+    parser.add_argument('--data_path', type=str, default=None)
+    parser.add_argument('--save_path', type=str, default=None)
+    parser.add_argument(
+        "--category",
+        type=str,
+        default=None,
+        help="category name for MvTec AD dataset")
     parser.add_argument('--resize', type=list or tuple, default=None)
     parser.add_argument('--crop_size', type=list or tuple, default=None)
     parser.add_argument(
@@ -75,11 +80,32 @@ def argsparser():
         type=str,
         default=None,
         help="backbone model arch, one of [resnet18, resnet50, wide_resnet50_2]")
-    parser.add_argument("--do_val", type=bool, default=None)
-    parser.add_argument("--save_pic", type=bool, default=None)
+    parser.add_argument(
+        "--k", type=int, default=None, help="used feature channels")
+    parser.add_argument(
+        "--method",
+        type=str,
+        default=None,
+        choices=[
+            'sample', 'h_sample', 'ortho', 'svd_ortho', 'gaussian', 'coreset'
+        ],
+        help="projection method, one of [sample, ortho, svd_ortho, gaussian, coreset]"
+    )
+    parser.add_argument("--do_eval", type=bool, default=None)
+    parser.add_argument("--save_pic", type=str2bool, default=None)
 
-    parser.add_argument("--save_model", type=bool, default=True)
-    parser.add_argument("--print_freq", type=int, default=20)
+    parser.add_argument("--save_model", type=str2bool, default=True)
+    parser.add_argument('--test_batch_size', type=int, default=1)
+    parser.add_argument(
+        "--inc", action='store_true', help="use incremental cov & mean")
+    parser.add_argument('--eval_PRO', type=bool, default=True)
+    parser.add_argument(
+        '--eval_threthold_step',
+        type=int,
+        default=500,
+        help="threthold_step when computing PRO Score")
+    parser.add_argument('--einsum', action='store_true')
+    parser.add_argument('--non_partial_AUC', action='store_true')
     return parser.parse_args()
 
 
@@ -226,30 +252,44 @@ def val(args, model, test_dataloader, class_name, idx):
     scores = score_map # (score_map - min_score) / (max_score - min_score)
 
     # calculate image-level ROC AUC score
-    img_scores = scores.reshape(scores.shape[0], -1).max(axis=1)
+    image_score = scores.reshape(scores.shape[0], -1).max(axis=1)
     gt_list = np.asarray(gt_list)
-    fpr, tpr, _ = roc_curve(gt_list, img_scores)
-    img_roc_auc = roc_auc_score(gt_list, img_scores)
-    total_roc_auc.append(img_roc_auc)
-
+    # fpr, tpr, _ = roc_curve(gt_list, image_score)
+    img_auroc = compute_roc_score(
+        gt_list, image_score, args.eval_threthold_step, args.non_partial_AUC)
     # get optimal threshold
-    gt_mask = np.asarray(gt_mask_list, dtype=np.int64)
-    precision, recall, thresholds = precision_recall_curve(gt_mask.flatten(),
-                                                           scores.flatten())
+    precision, recall, thresholds = precision_recall_curve(gt_list, image_score)
     a = 2 * precision * recall
     b = precision + recall
     f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)
     threshold = thresholds[np.argmax(f1)]
-
+    print(f"F1 image:{f1.max()} threshold:{max_score}")
     # calculate per-pixel level ROCAUC
-    fpr, tpr, _ = roc_curve(gt_mask.flatten(), scores.flatten())
-    per_pixel_rocauc = roc_auc_score(gt_mask.flatten(), scores.flatten())
-    total_pixel_roc_auc.append(per_pixel_rocauc)
+    gt_mask = np.asarray(gt_mask_list, dtype=np.int64).squeeze()
+    # fpr, tpr, _ = roc_curve(gt_mask.flatten(), scores.flatten())
+    per_pixel_auroc = compute_roc_score(
+        gt_mask.flatten(),
+        score_map.flatten(), args.eval_threthold_step, args.non_partial_AUC)
+    # get optimal threshold
+    precision, recall, thresholds = precision_recall_curve(gt_mask.flatten(),
+                                                           score_map.flatten())
+    a = 2 * precision * recall
+    b = precision + recall
+    f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)
+    threshold = thresholds[np.argmax(f1)]
+    print(f"F1 pixel:{f1.max()} threshold:{max_score}")
 
+    # calculate Per-Region-Overlap Score
+    total_PRO = compute_pro_score(
+        gt_mask, score_map, args.eval_threthold_step,
+        args.non_partial_AUC) if args.eval_PRO else None
+
+    print([class_name, img_auroc, per_pixel_auroc, total_PRO])
     if args.save_pic:
         save_path = os.path.join(args.save_path, 'val.png')
-        plot_fig(test_imgs, scores, gt_mask_list, threshold, save_path, class_name)
-    return np.mean(total_roc_auc), np.mean(total_pixel_roc_auc)
+        plot_fig(test_imgs, score_map, gt_mask_list, threshold, save_path,
+                 class_name)
+    return img_auroc, per_pixel_auroc, total_PRO
 
 
 # def plot_fig(test_img, scores, gts, threshold, save_dir, class_name):

@@ -62,15 +62,15 @@ if __name__ == '__main__':
     #     i += 1
 
     # ===================================================================================
-    img_type = "1-按规格显著病茨/7.00R16-14PR[AZ630]朝阳无内"
-    img_dir = f'/data2/chen/uad-tire/{img_type}/632/'
+    img_type = "1-按规格显著病茨/12.00R20-18PR[CR926+]ENTDA"
+    img_dir = f'/data2/chen/uad-tire/{img_type}/合格/'
     other_dirs = [d for d in os.listdir(img_dir) if os.path.isdir(os.path.join(img_dir, d))]
     img_files = [f for f in os.listdir(img_dir) if f.endswith('.jpg') or f.endswith('.png')]
     for d in other_dirs:
         img_files.extend([os.path.join(d, f) for f in os.listdir(os.path.join(img_dir, d)) if f.endswith('.jpg') or f.endswith('.png')])
         
-    save_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/632_4000/'
-    val_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/632_4000/'
+    save_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/train_2000/'
+    val_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/val_2000/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     col_num = 3
@@ -90,7 +90,7 @@ if __name__ == '__main__':
             os.makedirs(val_path)
     for img_num, img_file in enumerate(img_files):
         img = Image.open(os.path.join(img_dir, img_file))
-        if img.size[0] < 2000:
+        if img.size[0] > 2000: # or img.size[0] > 4000:
             continue
         if img.mode == "P":
             img = img.convert('RGB')
