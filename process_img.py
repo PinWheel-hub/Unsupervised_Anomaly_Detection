@@ -62,15 +62,15 @@ if __name__ == '__main__':
     #     i += 1
 
     # ===================================================================================
-    img_type = "1-按规格显著病茨/12.00R20-18PR[CR926+]ENTDA"
-    img_dir = f'/data2/chen/uad-tire/{img_type}/合格/'
+    img_type = "2-常用规格/6.50R16-12PR[CR926]朝阳"
+    img_dir = f'/data2/chen/uad-tire/{img_type}/病茨/'
     other_dirs = [d for d in os.listdir(img_dir) if os.path.isdir(os.path.join(img_dir, d))]
     img_files = [f for f in os.listdir(img_dir) if f.endswith('.jpg') or f.endswith('.png')]
     for d in other_dirs:
         img_files.extend([os.path.join(d, f) for f in os.listdir(os.path.join(img_dir, d)) if f.endswith('.jpg') or f.endswith('.png')])
         
-    save_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/train_2000/'
-    val_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/val_2000/'
+    save_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/anomaly_2000/'
+    val_dir = f'/data/data_wbw/data/cropped_tyre/{img_type}/anomaly_2000/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     col_num = 3
@@ -78,6 +78,7 @@ if __name__ == '__main__':
     import random
     random.seed(3)
     index = list(range(0, len(img_files)))
+    print(len(img_files))
     random.shuffle(index)
 
     for j in range(0, col_num):

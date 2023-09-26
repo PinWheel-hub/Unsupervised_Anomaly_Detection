@@ -43,13 +43,13 @@ def rescale(x):
 
 def cholesky_inverse(input, upper=False, out=None, inplace=True):
     u = torch.cholesky(input, upper)
-    u = torch.linalg.triangular_solve(u, torch.eye(u.shape[-1]), upper=upper)
+    u, _ = torch.triangular_solve(u, torch.eye(u.shape[-1]).cuda(), upper=upper)
     if len(u.shape) == 2:
         uit = u.T
     elif len(u.shape) == 3:
-        uit = torch.permute(u, perm=(0, 2, 1))
+        uit = u.permute((0, 2, 1))
     elif len(u.shape) == 4:
-        uit = torch.permute(u, perm=(0, 1, 3, 2))
+        uit = u.permute((0, 1, 3, 2))
     if inplace:
         input = u @uit if upper else uit @u
         return input
@@ -152,8 +152,8 @@ def shift(matrix: torch.tensor, r: int, c: int):
         shifted_matrix[new_rows[:, None], new_columns[None, :]] = matrix[:-r, :-c]
     return shifted_matrix
 
-def my_cdist(X, Y, n_neighbors, feature_size=[32, 32]):
-    H, W, N, _ = X.shape
+def my_cdist(X, Y, feature_size=[32, 32]):
+    H, W, _, _ = X.shape
 
     # D = torch.zeros(H, W, N, n_neighbors)
     # for i in range(H):

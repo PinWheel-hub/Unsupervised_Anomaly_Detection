@@ -182,8 +182,7 @@ class my_KCenterGreedy:
             if self.min_distances is None:
                 self.min_distances = distance
             else:
-                self.min_distances = torch.minimum(self.min_distances,
-                                                    distance)
+                self.min_distances = torch.minimum(self.min_distances, distance)
 
     def select_coreset_idxs(
             self, selected_idxs: Optional[List[int]]=None) -> List[int]:

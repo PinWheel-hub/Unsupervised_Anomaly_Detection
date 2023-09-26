@@ -446,7 +446,7 @@ class local_coreset(PaDiMPlus_torch):
         v = v.reshape(B, C // self.num_heads, self.num_heads, N).permute(0, 2, 1, 3).reshape(B * self.num_heads, C // self.num_heads, N)
 
         q = torch.reshape(q, (q.shape[0], q.shape[1], q.shape[2]))
-        k = torch.reshape(q, (q.shape[0], q.shape[2], q.shape[1]))
+        k = torch.reshape(k, (k.shape[0], k.shape[2], k.shape[1]))
         v = torch.reshape(v, (v.shape[0], v.shape[1], v.shape[2]))
         out = torch.matmul(q, k)
         out = torch.nn.functional.softmax(out, dim=-1)
@@ -467,8 +467,8 @@ class local_coreset(PaDiMPlus_torch):
         x = self.model.layer2(x)
 
         q = avep(x)
-        k = maxp(x)
-        v = maxp(x)
+        k = avep(x)
+        v = avep(x)
         out = self.attention(q, k, v)
         out = out + avep(x)
         # out = torch.concat((out, maxp(x)), dim=1)
@@ -477,7 +477,7 @@ class local_coreset(PaDiMPlus_torch):
         x = self.model.layer3(x)
 
         q = avep(x)
-        k = maxp(x)
+        k = avep(x)
         v = avep(x)
         out = self.attention(q, k, v)
         out = out + avep(x)
@@ -551,7 +551,7 @@ class local_coreset(PaDiMPlus_torch):
         n_coreset = self.memory_bank.shape[-2]
         distances = []  # paddle.zeros((B, HW, n_coreset))
         for i in range(B):
-            distances.append(my_cdist(embedding[i, :, :, :, :], self.memory_bank, n_neighbors, feature_size=self.feature_size))  # euclidean norm
+            distances.append(my_cdist(embedding[i, :, :, :, :], self.memory_bank, feature_size=self.feature_size))  # euclidean norm
         distances = torch.stack(distances, 0)
         distances, _ = distances.topk(k=n_neighbors, axis=-1, largest=False)
         return distances  # B,

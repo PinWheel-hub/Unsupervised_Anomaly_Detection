@@ -97,7 +97,7 @@ def main():
     model.eval()
 
     # build data
-    MVTecDataset = mvtec_torch.MVTecDataset_torch(is_predict=True, resize=args.resize, cropsize=args.crop_size)
+    MVTecDataset = mvtec_torch.MVTecDataset_torch(is_predict=True, resize=args.resos.path.splitextize, cropsize=args.crop_size)
     transform_x = MVTecDataset.get_transform_x()
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t' +
           "Starting eval model...")
@@ -127,7 +127,7 @@ def predict(args, model, x, img_name):
     out = model.project(out)
     score_map, image_score = model.generate_scores_map(out, x.shape[-2:])
     end_time = datetime.datetime.now()
-    print("代码执行时间：", (end_time - start_time).total_seconds(), "秒")
+    # print("代码执行时间：", (end_time - start_time).total_seconds(), "秒")
     # score_map = np.concatenate(score_map, 0)
 
     # Normalization
@@ -137,7 +137,7 @@ def predict(args, model, x, img_name):
         # (score_map - min_score) / (max_score - min_score)
     image_score = image_score[0]
     print(os.path.basename(img_name), image_score)
-    if args.save_pic:
+    if args.save_pic and image_score > 1.56:
         save_path = os.path.join(args.result_path, f'{os.path.splitext(img_name)[0]}: {image_score}.png')
         plot_fig(x.numpy(), score_map, None, args.threshold, save_path,
              args.category, args.save_pic)
