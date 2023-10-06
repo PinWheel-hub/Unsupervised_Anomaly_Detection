@@ -190,7 +190,7 @@ def train(args, model, train_dataloader, idx, class_name):
     epoch_begin = time.time()
     end_time = time.time()
 
-    for index, x in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
+    for index, x in tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Extracting features"):
         start_time = time.time()
         data_time = start_time - end_time
 
@@ -232,7 +232,7 @@ def train(args, model, train_dataloader, idx, class_name):
     mean = torch.mean(embedding_vectors, axis=0).numpy()
     cov = torch.zeros((C, C, H * W)).numpy()
     I = np.identity(C)
-    for i in tqdm(range(H * W)):
+    for i in tqdm(range(H * W), desc="Calculating covariance"):
         cov[:, :, i] = np.cov(embedding_vectors[:, :, i].numpy(),
                               rowvar=False) + 0.01 * I
     # save learned distribution

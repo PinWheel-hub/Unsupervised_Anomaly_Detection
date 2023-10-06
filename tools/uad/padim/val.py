@@ -121,7 +121,7 @@ def main():
 
     result = []
     # assert args.category in mvtec_torch.CLASS_NAMES
-    csv_columns = ['category', 'Image_AUROC', 'Pixel_AUROC']
+    csv_columns = ['category', 'Image_AUROC', 'Pixel_AUROC', 'PRO_score']
     csv_name = os.path.join(args.save_path,
                             '{}_seed{}.csv'.format(args.category, args.seed))
     # build model
@@ -202,21 +202,17 @@ def val(args, model, test_dataloader, class_name, idx):
         def mahalanobis_pd(sample, mean, conv_inv):
             return torch.sqrt(
                 torch.matmul(
-                    torch.matmul((sample - mean).unsqueeze(1).T, conv_inv), (sample - mean
-                                                                   )))[0]
+                    torch.matmul((sample - mean.unsqueeze(0).expand_as(sample)), conv_inv), (sample - mean.unsqueeze(0).expand_as(sample)).T)).diag()
 
         B, C, H, W = embedding_vectors.shape
         embedding_vectors = embedding_vectors.reshape((B, C, H * W)).cuda()
         model.distribution[0] = model.distribution[0].cuda()
         model.distribution[1] = model.distribution[1].cuda()
         dist_list = []
-        for i in range(H * W):
+        for i in tqdm(range(H * W), desc="Calculating dsitance"):
             mean = model.distribution[0][:, i]
             conv_inv = torch.linalg.inv(model.distribution[1][:, :, i])
-            dist = [
-                mahalanobis_pd(sample[:, i], mean, conv_inv).cpu().numpy()
-                for sample in embedding_vectors
-            ]
+            dist = mahalanobis_pd(embedding_vectors[:, :, i], mean, conv_inv).cpu().numpy()
             dist_list.append(dist)
     else:
         # calculate distance matrix
