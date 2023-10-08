@@ -97,7 +97,7 @@ def main():
     model.eval()
 
     # build data
-    MVTecDataset = mvtec_torch.MVTecDataset_torch(is_predict=True, resize=args.resos.path.splitextize, cropsize=args.crop_size)
+    MVTecDataset = mvtec_torch.MVTecDataset_torch(is_predict=True, resize=args.resize, cropsize=args.crop_size)
     transform_x = MVTecDataset.get_transform_x()
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\t' +
           "Starting eval model...")
