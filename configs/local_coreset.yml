@@ -10,12 +10,12 @@ pretrained_model_path: null # checkpoints/resnet18.pth
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category transistor
+category: &category wood
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/transistor/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
 save_path: [output/, *method, _, *backbone, _, *category]
-save_name: &save_name transistor.pth
+save_name: &save_name wood.pth
 
 # train arguments
 do_eval: True  # After training, whether to eval model;

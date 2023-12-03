@@ -10,12 +10,12 @@ pretrained_model_path: null # checkpoints/resnet18.pth
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category transistor
+category: &category carpet
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/transistor/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/carpet/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name transistor.pth
+save_name: &save_name carpet.pth
 
 # train arguments
 do_eval: true  # After training, whether to eval model;
@@ -26,6 +26,6 @@ save_pic: True # Whether to save one output example picture in val and predict;
 model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
-img_path: /data/data_wbw/data/mvtec_anomaly_detection/leather/test/hole
+img_path: /data/data_wbw/data/mvtec_anomaly_detection/carpet/test/hole
 result_path: [output/, *model, _, *backbone, _, *category, '/hole']
 threshold: 2.2

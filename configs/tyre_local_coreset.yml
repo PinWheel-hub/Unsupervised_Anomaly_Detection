@@ -25,6 +25,6 @@ save_pic: True # Whether to save one output example picture in val and predict;
 model_path: [output/, *method, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
-img_path: /data/data_wbw/data/cropped_tyre/1-按规格显著病茨/7.50R16-14PR[CR907]朝阳无内/632_2000/1 #48.jpg # /data/data_wbw/data/cropped_tyre/006163123012900_3/test/A011141165_0.jpg
+img_path: /data2/chen/uad-tire/3-常用规格整理/700R16-8PR-EZ525-朝阳无内#1614/normal/F3D1A20324.png #48.jpg # /data/data_wbw/data/cropped_tyre/006163123012900_3/test/A011141165_0.jpg
 result_path: [output/, *method, _, *backbone, _, *category, '/7.50R16-14PR[CR907]朝阳无内_632_2000_1']
 threshold: 1.5
