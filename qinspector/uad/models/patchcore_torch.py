@@ -18,7 +18,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18, resnet50, wide_resnet50_2
+from torchvision.models import resnet18, resnet50, wide_resnet50_2, resnet101
 
 from scipy.ndimage import gaussian_filter
 from qinspector.cvlib.workspace import register
@@ -29,11 +29,13 @@ models = {
     "resnet18": resnet18,
     "resnet50": resnet50,
     "wide_resnet50_2": wide_resnet50_2,
+    "resnet101": resnet101
 }
 fins = {
     "resnet18": 448,
     "resnet50": 1792,
     "wide_resnet50_2": 1792,
+    "resnet101": 1792
 }
 
 
