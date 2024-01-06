@@ -82,7 +82,7 @@ class MVTecDataset_torch(Dataset):
         return x, y, mask
 
     def __len__(self):
-        return len(self.x) if self.max_size is None else self.max_size
+        return len(self.x) if self.max_size is None else min(self.max_size, len(self.x))
 
     def load_dataset_folder(self):
         phase = 'train' if self.is_train else 'test'
