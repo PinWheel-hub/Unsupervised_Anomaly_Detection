@@ -339,18 +339,17 @@ def plot_fig(test_img,
              class_name,
              save_pic=True):
     num = len(scores)
-    vmax = scores.max() * 255.
-    vmin = scores.min() * 255.
+    vmax = scores.max()
+    vmin = scores.min()
     with_gt = gts != None
     for i in range(num):
         img = test_img[i]
         img = denormalization(img)
-        heat_map = scores[i] * 255
+        heat_map = scores[i]
         mask = copy.deepcopy(scores[i])
         mask = (mask > threshold) + 0
         # kernel = morphology.disk(4)
-        # mask = morphology.opening(mask, kernel)
-        mask *= 255     
+        # mask = morphology.opening(mask, kernel)    
         vis_img = mark_boundaries(img, mask, color=(1, 0, 0), mode='thick')    
         fig_img, ax_img = plt.subplots(1, 4 + with_gt, figsize=(12, 3))
         plt.suptitle(t='max score: {}, threshold: {}'.format("%.4g" % scores[i].max(), threshold))
@@ -368,7 +367,7 @@ def plot_fig(test_img,
         ax = ax_img[with_gt + 1].imshow(heat_map, cmap='jet', norm=norm)
         ax_img[with_gt + 1].imshow(img, cmap='gray', interpolation='none')
         ax_img[with_gt + 1].imshow(
-            heat_map, cmap='jet', alpha=0.5, interpolation='none')
+            heat_map, cmap='jet', alpha=0.5, interpolation='none', vmin=vmin, vmax=max(threshold, vmax))
         ax_img[with_gt + 1].title.set_text('Predicted heat map')
         ax_img[with_gt + 2].imshow(mask, cmap='gray')
         ax_img[with_gt + 2].title.set_text('Predicted mask')
@@ -394,7 +393,7 @@ def plot_fig(test_img,
                 dir_name = os.path.dirname(save_name)
                 if dir_name and not os.path.exists(dir_name):
                     os.makedirs(dir_name)
-                fig_img.savefig(save_name, dpi=100)
+                fig_img.savefig(save_name, dpi=150)
             else:
                 plt.show()
         plt.close()
