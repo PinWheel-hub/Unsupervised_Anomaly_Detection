@@ -60,12 +60,20 @@ print(torch.nn.functional.softmax(a.float(), dim=-1))
 #         s = shift(matrix, i, j)
 #         print(s)
 
-import base64
+# import base64
 
-# 读取图片文件
-with open('image-1.png', 'rb') as image_file:
-    # 将图片内容转换为Base64编码
-    base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+# # 读取图片文件
+# with open('image-1.png', 'rb') as image_file:
+#     # 将图片内容转换为Base64编码
+#     base64_image = base64.b64encode(image_file.read()).decode('utf-8')
 
-# 打印Base64编码
-print(base64_image)
+# # 打印Base64编码
+# print(base64_image)
+from PIL import Image
+import numpy as np
+img_path = '/data/data_wbw/data/cropped_tyre/Tyre_AD/JD2023-GuoChan/test/good/Image_20221208095016C1_1_4.jpg'
+img = Image.open(img_path)
+img = np.array(img)
+img[300:306, :] = (0,0,0)
+img = Image.fromarray(np.uint8(img))
+img.save('1.jpg')

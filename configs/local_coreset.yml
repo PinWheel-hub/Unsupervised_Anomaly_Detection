@@ -2,7 +2,7 @@
 device: cuda:0
 seed: 3
 model: &model patchcore
-backbone: &backbone wide_resnet50_2  # Support resnet18, resnet50, wide_resnet50_2
+backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
 method: &method local_coreset # projection method, one of [sample, ortho, svd_ortho, gaussian, coreset]
 k: 10  # using feature channels
 pretrained_model_path: null # checkpoints/resnet18.pth
@@ -10,12 +10,12 @@ pretrained_model_path: null # checkpoints/resnet18.pth
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category wood
+category: &category capsule
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/wood/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/capsule/train/good/
 save_path: [output/, *method, _, *backbone, _, *category]
-save_name: &save_name wood.pth
+save_name: &save_name capsule.pth
 
 # train arguments
 do_eval: True  # After training, whether to eval model;

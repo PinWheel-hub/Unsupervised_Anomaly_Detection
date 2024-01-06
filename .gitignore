@@ -3,6 +3,9 @@ data/
 output/
 saved_model/
 
+test_imgs/
+*.pth
+
 # Mac system
 .DS_Store
 

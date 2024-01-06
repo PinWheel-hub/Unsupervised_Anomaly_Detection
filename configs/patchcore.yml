@@ -1,21 +1,21 @@
 # common arguments
-device: cuda:1
+device: cuda:0
 seed: 3
 model: &model patchcore
-backbone: &backbone wide_resnet50_2  # Support resnet18, resnet50, wide_resnet50_2
+backbone: &backbone resnet101  # Support resnet18, resnet50, wide_resnet50_2
 method: coreset # projection method, one of [sample, ortho, svd_ortho, gaussian, coreset]
 k: 10  # using feature channels
-pretrained_model_path: null # checkpoints/resnet18.pth
+pretrained_model_path: checkpoints/resnet101.pth # checkpoints/resnet18.pth
 
 # dataset arguments
 batch_size: 1
 num_workers: 0
-category: &category carpet
+category: &category capsule
 resize: [256, 256]
 crop_size: [256, 256]
-data_path: /data/data_wbw/data/mvtec_anomaly_detection/carpet/train/good/
+data_path: /data/data_wbw/data/mvtec_anomaly_detection/capsule/train/good/
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name carpet.pth
+save_name: &save_name capsule.pth
 
 # train arguments
 do_eval: true  # After training, whether to eval model;
@@ -26,6 +26,6 @@ save_pic: True # Whether to save one output example picture in val and predict;
 model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
-img_path: /data/data_wbw/data/mvtec_anomaly_detection/carpet/test/hole
+img_path: /data/data_wbw/data/mvtec_anomaly_detection/capsule/test/poke/008.png
 result_path: [output/, *model, _, *backbone, _, *category, '/hole']
-threshold: 2.2
+threshold: 1.52
