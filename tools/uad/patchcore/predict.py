@@ -137,7 +137,7 @@ def predict(args, model, x, img_name):
         # (score_map - min_score) / (max_score - min_score)
     image_score = image_score[0]
     print(os.path.basename(img_name), image_score)
-    if args.save_pic and image_score > 1.56:
+    if args.save_pic and (image_score > args.threshold or args.save_all):
         save_path = os.path.join(args.result_path, f'{os.path.splitext(img_name)[0]}: {image_score}.png')
         plot_fig(x.numpy(), score_map, None, args.threshold, save_path,
              args.category, args.save_pic)
