@@ -2,10 +2,10 @@
 device: cuda:0
 seed: 3
 model: &model patchcore
-backbone: &backbone resnet18  # Support resnet18, resnet50, wide_resnet50_2
+backbone: &backbone gan  # Support resnet18, resnet50, wide_resnet50_2
 method: coreset # projection method, one of [sample, ortho, svd_ortho, gaussian, coreset]
-k: 10  # using feature channels
-pretrained_model_path: checkpoints/resnet18.pth # checkpoints/resnet18.pth
+k: 5  # using feature channels
+pretrained_model_path: checkpoints/gan.pth # checkpoints/resnet18.pth
 
 # dataset arguments
 max_size: 1000
@@ -16,7 +16,7 @@ resize: [256, 256]
 crop_size: [256, 256]
 data_path: /data/data_wbw/data/cropped_tyre/Tyre_AD/700R16-8PR-EZ525-1614/train/good/ # /data/data_wbw/data/cropped_tyre/006163123012900_3/train/ # /data2/chen/spec10k/006163123012900
 save_path: [output/, *model, _, *backbone, _, *category]
-save_name: &save_name 700R16-8PR-EZ525-1614_flow.pth
+save_name: &save_name 700R16-8PR-EZ525-1614_gan.pth
 
 # train arguments
 do_eval: False  # After training, whether to eval model;
@@ -27,6 +27,6 @@ model_path: [output/, *model, _, *backbone, _, *category, /, *save_name]
 
 # predict arguments
 save_all: True
-img_path: test_imgs/B3C9A21575 # /data/data_wbw/data/cropped_tyre/006163123012900_3/test/A011141165_0.jpg
-result_path: [output/, *model, _, *backbone, _, *category, '/700R16-8PR-EZ525-1614_flow/B3C9A21575']
-threshold: 1.56
+img_path: test_imgs/E3D5A21006 # /data/data_wbw/data/cropped_tyre/006163123012900_3/test/A011141165_0.jpg
+result_path: [output/, *model, _, *backbone, _, *category, '/700R16-8PR-EZ525-1614_gan/E3D5A21006']
+threshold: 0.25
