@@ -352,7 +352,7 @@ def plot_fig(test_img,
         # mask = morphology.opening(mask, kernel)    
         vis_img = mark_boundaries(img, mask, color=(1, 0, 0), mode='thick')    
         fig_img, ax_img = plt.subplots(1, 4 + with_gt, figsize=(12, 3))
-        plt.suptitle(t='max score: {}, threshold: {}, prob: {}'.format("%.4g" % scores[i].max(), threshold, scores[i].max() / 2 * threshold))
+        plt.suptitle(t='max score: {}, threshold: {}, prob: {}'.format("%.4g" % scores[i].max(), threshold, scores[i].max() / (2 * threshold)))
         fig_img.subplots_adjust(right=0.9)
         norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
         for ax_i in ax_img:
