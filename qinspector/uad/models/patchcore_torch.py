@@ -25,17 +25,100 @@ from qinspector.cvlib.workspace import register
 from qinspector.uad.utils.utils_torch import cdist, my_cdist, cholesky_inverse, mahalanobis, mahalanobis_einsum, orthogonal, svd_orthogonal
 from qinspector.uad.utils.k_center_greedy_torch import KCenterGreedy, my_KCenterGreedy
 
+from typing import Tuple
+class GAN(nn.Module):
+    """Encoder Network.
+
+    Args:
+        input_size (tuple[int, int]): Size of input image
+        latent_vec_size (int): Size of latent vector z
+        num_input_channels (int): Number of input channels in the image
+        n_features (int): Number of features per convolution layer
+        extra_layers (int): Number of extra layers since the network uses only a single encoder layer by default.
+            Defaults to 0.
+    """
+
+    def __init__(
+        self,
+        input_size: Tuple[int, int]=(256, 256),
+        latent_vec_size: int=100,
+        num_input_channels: int=3,
+        n_features: int=64,
+        extra_layers: int = 0,
+        add_final_conv_layer: bool = True,
+    ) -> None:
+        super().__init__()
+
+        self.input_layers = nn.Sequential()
+        self.input_layers.add_module(
+            f"initial-conv-{num_input_channels}-{n_features}",
+            nn.Conv2d(num_input_channels, n_features, kernel_size=4, stride=2, padding=4, bias=False),
+        )
+        self.input_layers.add_module(f"initial-relu-{n_features}", nn.LeakyReLU(0.2, inplace=True))
+
+        # Extra Layers
+        self.extra_layers = nn.Sequential()
+
+        for layer in range(extra_layers):
+            self.extra_layers.add_module(
+                f"extra-layers-{layer}-{n_features}-conv",
+                nn.Conv2d(n_features, n_features, kernel_size=3, stride=1, padding=1, bias=False),
+            )
+            self.extra_layers.add_module(f"extra-layers-{layer}-{n_features}-batchnorm", nn.BatchNorm2d(n_features))
+            self.extra_layers.add_module(f"extra-layers-{layer}-{n_features}-relu", nn.LeakyReLU(0.2, inplace=True))
+
+        # Create pyramid features to reach latent vector
+        self.pyramid_features = nn.Sequential()
+        pyramid_dim = min(*input_size) // 2  # Use the smaller dimension to create pyramid.
+        while pyramid_dim > 4:
+            in_features = n_features
+            out_features = n_features * 2
+            self.pyramid_features.add_module(
+                f"pyramid-{in_features}-{out_features}-conv",
+                nn.Conv2d(in_features, out_features, kernel_size=4, stride=2, padding=1, bias=False),
+            )
+            self.pyramid_features.add_module(f"pyramid-{out_features}-batchnorm", nn.BatchNorm2d(out_features))
+            self.pyramid_features.add_module(f"pyramid-{out_features}-relu", nn.LeakyReLU(0.2, inplace=True))
+            n_features = out_features
+            pyramid_dim = pyramid_dim // 2
+
+        # Final conv
+        if add_final_conv_layer:
+            self.final_conv_layer = nn.Conv2d(
+                n_features,
+                latent_vec_size,
+                kernel_size=4,
+                stride=1,
+                padding=0,
+                bias=False,
+            )
+
+    def forward(self, input_tensor):
+        """Return latent vectors."""
+
+        output = self.input_layers(input_tensor)
+        output = self.extra_layers(output)
+        output = self.pyramid_features(output)
+        if self.final_conv_layer is not None:
+            output = self.final_conv_layer(output)
+
+        return output
+
+gan =  GAN()
+
 models = {
     "resnet18": resnet18,
     "resnet50": resnet50,
     "wide_resnet50_2": wide_resnet50_2,
-    "resnet101": resnet101
+    "resnet101": resnet101,
+    "gan": gan
 }
 fins = {
     "resnet18": 448,
     "resnet50": 1792,
     "wide_resnet50_2": 1792,
-    "resnet101": 1792
+    "resnet101": 1792,
+    "gan": 64
 }
 
 
@@ -67,8 +150,11 @@ class PaDiMPlus_torch(nn.Module):
             print('Inference mode')
         else:
             assert arch in models.keys(), 'arch {} not supported'.format(arch)
-            self.model = models[arch](pretrained)
-            del self.model.layer4, self.model.fc, self.model.avgpool
+            if arch == 'gan':
+                self.model = models[arch]
+            else:
+                self.model = models[arch](pretrained)
+                del self.model.layer4, self.model.fc, self.model.avgpool
             self.model.eval()
             print(
                 f'model {arch}, nParams {sum([w.numel() for w in self.model.parameters()])}'
@@ -317,23 +403,29 @@ class PatchCore_torch(PaDiMPlus_torch):
 
     @torch.no_grad()
     def forward(self, x):
-        pool = nn.AvgPool2d(3, 1, 1, count_include_pad=True)
-        res = []
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.relu(x)
-        x = self.model.maxpool(x)
-        x = self.model.layer1(x)
-        x = self.model.layer2(x)
-        res.append(pool(x))
-        x = self.model.layer3(x)
-        res.append(pool(x))
-        x = res
-        for i in range(1, len(x)):
-            x[i] = F.interpolate(x[i], scale_factor=2**i, mode="nearest")
-        # print([i.shape for i in x])
-        x = torch.cat(x, 1)
-        # x = self.project(x)
+        if self.arch == 'gan':
+            pool = nn.AvgPool2d(2, 2, 0, count_include_pad=True)
+            x = self.model.input_layers(x)
+            x = self.model.extra_layers(x)
+            x = pool(x)
+        else:
+            pool = nn.AvgPool2d(3, 1, 1, count_include_pad=True)
+            res = []
+            x = self.model.conv1(x)
+            x = self.model.bn1(x)
+            x = self.model.relu(x)
+            x = self.model.maxpool(x)
+            x = self.model.layer1(x)
+            x = self.model.layer2(x)
+            res.append(pool(x))
+            x = self.model.layer3(x)
+            res.append(pool(x))
+            x = res
+            for i in range(1, len(x)):
+                x[i] = F.interpolate(x[i], scale_factor=2**i, mode="nearest")
+            # print([i.shape for i in x])
+            x = torch.cat(x, 1)
+            # x = self.project(x)
         return x
 
     @torch.no_grad()

@@ -96,11 +96,16 @@ class BaseRandomProjection:
                     (self.eps, n_samples, self.n_components_))
 
             elif self.n_components_ > n_features:
-                raise ValueError(
-                    "eps=%f and n_samples=%d lead to a target dimension of "
+                # raise ValueError(
+                #     "eps=%f and n_samples=%d lead to a target dimension of "
+                #     "%d which is larger than the original space with "
+                #     "n_features=%d" %
+                #     (self.eps, n_samples, self.n_components_, n_features))
+                print("eps=%f and n_samples=%d lead to a target dimension of "
                     "%d which is larger than the original space with "
                     "n_features=%d" %
                     (self.eps, n_samples, self.n_components_, n_features))
+                self.n_components_ = n_features
         else:
             if self.n_components <= 0:
                 raise ValueError("n_components must be greater than 0, got %s" %
