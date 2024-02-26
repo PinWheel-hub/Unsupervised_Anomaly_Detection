@@ -192,7 +192,7 @@ def val(args, model, test_dataloader, class_name):
     b = precision + recall
     f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)
     threshold = thresholds[np.argmax(f1)]
-    print(f"F1 image:{f1.max()} threshold:{max_score}")
+    print(f"F1 image:{f1.max()} threshold:{threshold}")
     # calculate per-pixel level ROCAUC
     gt_mask = np.asarray(gt_mask_list, dtype=np.int64).squeeze()
     # fpr, tpr, _ = roc_curve(gt_mask.flatten(), scores.flatten())
@@ -206,7 +206,7 @@ def val(args, model, test_dataloader, class_name):
     b = precision + recall
     f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)
     threshold = thresholds[np.argmax(f1)]
-    print(f"F1 pixel:{f1.max()} threshold:{max_score}")
+    print(f"F1 pixel:{f1.max()} threshold:{threshold}")
 
     # calculate Per-Region-Overlap Score
     total_PRO = compute_pro_score(
